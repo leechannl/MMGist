@@ -6,6 +6,7 @@
 //  Copyright (c) 2015 Pirate. All rights reserved.
 //
 
+#import <RestKit/RestKit.h>
 #import "AppDelegate.h"
 #import "DetailViewController.h"
 #import "MasterViewController.h"
@@ -18,6 +19,12 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+
+    RKManagedObjectStore *managedObjectStore = [[RKManagedObjectStore alloc] initWithManagedObjectModel:self.managedObjectModel];
+
+    // Set the default store shared instance
+    [RKManagedObjectStore setDefaultStore:managedObjectStore];
+
     // Override point for customization after application launch.
     UINavigationController *navigationController = (UINavigationController *)self.window.rootViewController;
     MasterViewController *controller = (MasterViewController *)navigationController.topViewController;

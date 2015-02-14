@@ -6,6 +6,8 @@
 //  Copyright (c) 2015 Pirate. All rights reserved.
 //
 
+#import <RestKit/RestKit.h>
+#import <RestKit/Network/RKManagedObjectRequestOperation.h>
 #import "MasterViewController.h"
 #import "DetailViewController.h"
 
@@ -26,6 +28,27 @@
 
     UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(insertNewObject:)];
     self.navigationItem.rightBarButtonItem = addButton;
+
+    // Load the public Gists from Github
+    RKManagedObjectStore *managedObjectStore = [RKManagedObjectStore defaultStore];
+    RKEntityMapping *entityMapping = [RKEntityMapping mappingForEntityForName:@"Gist" inManagedObjectStore:managedObjectStore];
+    [entityMapping addAttributeMappingsFromDictionary:@{
+                                                        @"id":             @"gistID",
+                                                        @"url":            @"jsonURL",
+                                                        @"description":    @"descriptionText",
+                                                        @"public":         @"public",
+                                                        @"created_at":     @"createdAt"}];
+
+    RKLogConfigureByName("RestKit/Network", RKLogLevelTrace);
+    RKResponseDescriptor *responseDescriptor = [RKResponseDescriptor responseDescriptorWithMapping:entityMapping
+                                                                                            method:RKRequestMethodGET
+                                                                                       pathPattern:@"/gists/public"
+                                                                                           keyPath:nil
+                                                                                       statusCodes:RKStatusCodeIndexSetForClass(RKStatusCodeClassSuccessful)];
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:@"https://api.github.com/gists/public"]];
+    RKManagedObjectRequestOperation *managedObjectRequestOperation = [[RKManagedObjectRequestOperation alloc] initWithRequest:request responseDescriptors:@[ responseDescriptor ]];
+    managedObjectRequestOperation.managedObjectContext = self.managedObjectContext;
+    [[NSOperationQueue currentQueue] addOperation:managedObjectRequestOperation];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -101,7 +124,7 @@
 
 - (void)configureCell:(UITableViewCell *)cell atIndexPath:(NSIndexPath *)indexPath {
     NSManagedObject *object = [self.fetchedResultsController objectAtIndexPath:indexPath];
-    cell.textLabel.text = [[object valueForKey:@"timeStamp"] description];
+    cell.textLabel.text = [[object valueForKey:@"descriptionText"] description];
 }
 
 #pragma mark - Fetched results controller
@@ -114,14 +137,14 @@
     
     NSFetchRequest *fetchRequest = [[NSFetchRequest alloc] init];
     // Edit the entity name as appropriate.
-    NSEntityDescription *entity = [NSEntityDescription entityForName:@"Event" inManagedObjectContext:self.managedObjectContext];
+    NSEntityDescription *entity = [NSEntityDescription entityForName:@"Gist" inManagedObjectContext:self.managedObjectContext];
     [fetchRequest setEntity:entity];
     
     // Set the batch size to a suitable number.
     [fetchRequest setFetchBatchSize:20];
     
     // Edit the sort key as appropriate.
-    NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"timeStamp" ascending:NO];
+    NSSortDescriptor *sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"createAt" ascending:NO];
     NSArray *sortDescriptors = @[sortDescriptor];
     
     [fetchRequest setSortDescriptors:sortDescriptors];
